@@ -15,10 +15,7 @@ import type {
 import { CHANNELS_PER_INSTANCE } from '../../playback/channel-allocator.js';
 import { SYNTH_INITIAL_GAIN, headroomTrimFor } from '../../shared/mix.js';
 import type { PlaybackLoadState } from '@sudobility/music_types';
-import {
-  CC_EXPRESSION,
-  PERCUSSION_CHANNEL,
-} from '@sudobility/music_types';
+import { CC_EXPRESSION, PERCUSSION_CHANNEL } from '@sudobility/music_types';
 import { percussionExpression } from '../../shared/instrument-gain.js';
 import type {
   NativeSynth,
@@ -154,7 +151,10 @@ export class NativeSynthBackend implements SynthBackend {
     this.adoptClickInstance(count);
   }
 
-  async setPrograms(programs: { melodic: number[]; percussion: number[] }): Promise<void> {
+  async setPrograms(programs: {
+    melodic: number[];
+    percussion: number[];
+  }): Promise<void> {
     const signature = this.signature(programs);
     if (signature === this.programSignature) return;
     await this.require().setPrograms?.(programs);
@@ -163,7 +163,9 @@ export class NativeSynthBackend implements SynthBackend {
     this.adoptClickInstance(this.clickInstance);
   }
 
-  private signature(programs: { melodic: number[]; percussion: number[] } | undefined): string {
+  private signature(
+    programs: { melodic: number[]; percussion: number[] } | undefined
+  ): string {
     return programs
       ? `${programs.melodic.join(',')}|${programs.percussion.join(',')}`
       : '';
@@ -288,7 +290,9 @@ export class NativeSynthBackend implements SynthBackend {
    * has to do what the web engine's separate `GainNode` does.
    */
   private applyMasterGain(): void {
-    this.synth?.setMasterVolume(this.masterVolume * headroomTrimFor(this.trackCount));
+    this.synth?.setMasterVolume(
+      this.masterVolume * headroomTrimFor(this.trackCount)
+    );
   }
 
   dispose(): void {

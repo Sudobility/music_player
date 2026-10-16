@@ -57,7 +57,10 @@ export type NativeSynth = {
   }): Promise<void>;
   /** Grows the pool. Never shrinks it: a sounding note must not lose its synth. */
   ensureInstances(count: number): Promise<void>;
-  setPrograms?(programs: { melodic: number[]; percussion: number[] }): Promise<void>;
+  setPrograms?(programs: {
+    melodic: number[];
+    percussion: number[];
+  }): Promise<void>;
 
   /**
    * The synth's own clock, in seconds, monotonic while running.

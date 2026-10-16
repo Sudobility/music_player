@@ -261,10 +261,14 @@ export class SynthHost {
     if (!element) return;
     void element.play().then(
       () => console.info('[ScoreSmith audio]', 'media output bridge playing'),
-      (error) =>
-        console.info('[ScoreSmith audio]', 'media output bridge play rejected', {
-          error: error instanceof Error ? error.message : String(error),
-        }),
+      error =>
+        console.info(
+          '[ScoreSmith audio]',
+          'media output bridge play rejected',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        )
     );
   }
 
@@ -272,11 +276,15 @@ export class SynthHost {
     if (
       typeof document === 'undefined' ||
       typeof navigator === 'undefined' ||
-      typeof (context as AudioContext).createMediaStreamDestination !== 'function'
+      typeof (context as AudioContext).createMediaStreamDestination !==
+        'function'
     )
       return false;
     const userAgent = navigator.userAgent;
-    return /Safari/i.test(userAgent) && !/Chrome|Chromium|CriOS|Android/i.test(userAgent);
+    return (
+      /Safari/i.test(userAgent) &&
+      !/Chrome|Chromium|CriOS|Android/i.test(userAgent)
+    );
   }
 
   /**

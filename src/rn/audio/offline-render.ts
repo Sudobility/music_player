@@ -26,7 +26,10 @@ import { gmPackName, percussionPackName } from '../playback/gm-pack-name.js';
 import { PackLibrary } from '../playback/pack-library.js';
 import { RELEASE_SECONDS, planVoice } from '../playback/voice-plan.js';
 import { sustains } from '../playback/expression.js';
-import { instrumentGain, PERCUSSION_GAIN } from '../../shared/instrument-gain.js';
+import {
+  instrumentGain,
+  PERCUSSION_GAIN,
+} from '../../shared/instrument-gain.js';
 import { applySustainLoop } from '../playback/sustain-loop.js';
 import { loadAudioApi } from '../playback/audio-api.js';
 import type {
