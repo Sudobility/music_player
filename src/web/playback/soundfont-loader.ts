@@ -15,6 +15,14 @@ export type LoadProgress = { loaded: number; total: number };
 /** Bumped when the stored representation changes, so old entries are not reused. */
 const CACHE_NAME = 'music-soundfont-v1';
 
+/** Shared with the web backend's `[ScoreSmith audio]` logs so one filter shows the whole load. */
+const SOUNDFONT_LOG = '[ScoreSmith audio]';
+
+/** Monotonic clock for load timings, falling back where `performance` is absent. */
+function soundfontNow(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
 /**
  * The cache the soundfont lives in, or `null` where the Cache API is missing.
  *
@@ -24,10 +32,23 @@ const CACHE_NAME = 'music-soundfont-v1';
  * visibly wrong.
  */
 export async function openSoundfontCache(): Promise<Cache | null> {
-  if (typeof caches === 'undefined') return null;
+  if (typeof caches === 'undefined') {
+    // The Cache API only exists in a secure context (https or localhost). A LAN
+    // IP or plain http silently lands here, and every visit re-downloads.
+    console.info(
+      SOUNDFONT_LOG,
+      'Cache API unavailable (insecure context?); soundfont will not be cached'
+    );
+    return null;
+  }
   try {
     return await caches.open(CACHE_NAME);
-  } catch {
+  } catch (error) {
+    console.warn(
+      SOUNDFONT_LOG,
+      'opening soundfont cache failed; continuing without cache',
+      error
+    );
     return null; // private browsing and similar; the font still loads
   }
 }
@@ -40,8 +61,20 @@ export async function loadSoundfont(
   } = {}
 ): Promise<ArrayBuffer> {
   const cached = await opts.cache?.match(url);
-  if (cached) return await cached.arrayBuffer();
+  if (cached) {
+    const buffer = await cached.arrayBuffer();
+    console.info(SOUNDFONT_LOG, 'soundfont cache HIT', {
+      url,
+      bytes: buffer.byteLength,
+    });
+    return buffer;
+  }
+  console.info(SOUNDFONT_LOG, 'soundfont cache MISS; downloading', {
+    url,
+    cacheAvailable: Boolean(opts.cache),
+  });
 
+  const started = soundfontNow();
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
@@ -53,12 +86,29 @@ export async function loadSoundfont(
   opts.onProgress?.({ loaded: 0, total: declared });
 
   const buffer = await readWithProgress(response, declared, opts.onProgress);
-  // Rebuilt rather than cloned: the body has already been consumed to report
-  // progress, and a body can only be read once.
-  await opts.cache?.put(
+  console.info(SOUNDFONT_LOG, 'soundfont downloaded', {
     url,
-    new Response(buffer, { headers: response.headers })
-  );
+    bytes: buffer.byteLength,
+    downloadMs: Math.round(soundfontNow() - started),
+    cacheControl: response.headers.get('cache-control'),
+  });
+  // Rebuilt rather than cloned: the body has already been consumed to report
+  // progress, and a body can only be read once. A cache write that fails (quota,
+  // private mode) must not fail the load — it just means no caching this time.
+  try {
+    await opts.cache?.put(
+      url,
+      new Response(buffer, { headers: response.headers })
+    );
+    if (opts.cache) {
+      console.info(SOUNDFONT_LOG, 'soundfont stored in cache', {
+        url,
+        bytes: buffer.byteLength,
+      });
+    }
+  } catch (error) {
+    console.warn(SOUNDFONT_LOG, 'storing soundfont in cache failed', error);
+  }
 
   opts.onProgress?.({
     loaded: buffer.byteLength,

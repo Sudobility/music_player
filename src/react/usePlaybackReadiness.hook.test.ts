@@ -60,7 +60,10 @@ describe('usePlaybackReadiness', () => {
 
   it('leaves the bring-up to the host when told to', () => {
     const { player, prepares } = fakePlayer({ status: 'idle' });
-    renderHook(() => usePlaybackReadiness(player, { prepare: false }));
+    const { result } = renderHook(() =>
+      usePlaybackReadiness(player, { prepare: false })
+    );
     expect(prepares()).toBe(0);
+    expect(result.current).toBe('ready');
   });
 });

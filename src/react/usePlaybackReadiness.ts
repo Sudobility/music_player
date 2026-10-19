@@ -15,7 +15,9 @@
  * sees `preparing` or `ready`.
  *
  * `useSyncExternalStore` over `onLoadState`, so a change is a re-render of
- * the button and nothing else.
+ * the button and nothing else. A host that must wait for a user gesture can
+ * disable automatic preparation; while idle, its Play button stays available
+ * to provide that gesture.
  */
 import { useEffect, useSyncExternalStore } from 'react';
 import type { IMusicPlayer, PlaybackReadiness } from '../types.js';
@@ -49,5 +51,7 @@ export function usePlaybackReadiness(
       void player.prepare();
     }
   }, [player, prepare]);
-  return readiness === 'ready' ? 'ready' : 'preparing';
+  return readiness === 'ready' || (!prepare && readiness === 'notReady')
+    ? 'ready'
+    : 'preparing';
 }

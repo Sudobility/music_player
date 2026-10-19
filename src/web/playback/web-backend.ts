@@ -85,12 +85,27 @@ function debugAudio(message: string, details?: Record<string, unknown>): void {
   else console.info(WEB_AUDIO_DEBUG, message);
 }
 
+/** A monotonic clock for load timings, falling back where `performance` is absent. */
+function debugNow(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
 /**
  * Fetching is the measurable half of the load; handing the bytes to fluidsynth
  * takes seconds more and reports nothing. So the bar is held below halfway
  * until the fetch is done, rather than sitting at "done" through the decode.
  */
 const FETCH_SHARE = 0.5;
+
+/**
+ * How long `prepare` waits on a context resume before moving on.
+ *
+ * Chrome neither resolves nor rejects `resume()` on a suspended context until
+ * the page sees a user gesture — the promise simply stays pending. So the wait
+ * is bounded: the resume still runs (and settles on the eventual gesture), but
+ * `prepare` stops blocking on it and goes on to preload the font and graph.
+ */
+const RESUME_WAIT_MS = 250;
 
 type RoutableAudioContext = AudioContext & {
   setSinkId?: (deviceId: string) => Promise<void>;
@@ -186,6 +201,7 @@ export class WebSynthBackend implements SynthBackend {
     }
 
     onProgress({ status: 'loading', fraction: 0 });
+    const fontStart = debugNow();
     const soundfont = await this.deps.loadFont(
       this.deps.fontUrl,
       ({ loaded, total }) => {
@@ -195,13 +211,26 @@ export class WebSynthBackend implements SynthBackend {
         });
       }
     );
+    // The headline number for the download-vs-decode question: a cache hit is a
+    // few milliseconds here, a real fetch is seconds.
+    debugAudio('soundfont bytes ready', {
+      url: this.deps.fontUrl,
+      bytes: soundfont.byteLength,
+      loadMs: Math.round(debugNow() - fontStart),
+    });
     // Busy, no idea how long — which is the honest answer for the decode.
     onProgress({ status: 'loading', fraction: null });
+    const decodeStart = debugNow();
     await this.deps.host.init(this.context, {
       fluidsynthModuleUrl: this.deps.moduleUrls.fluidsynth,
       workletModuleUrl: this.deps.moduleUrls.worklet,
       soundfont,
       instanceCount,
+    });
+    // This is the cost no byte-cache can remove: the SF3 is decompressed into
+    // the worklet on every page load.
+    debugAudio('synth decode/init done', {
+      decodeMs: Math.round(debugNow() - decodeStart),
     });
     // Safari can report a running context before the AudioWorklet graph is
     // connected. Resume once more after the destination exists; this is a
@@ -211,22 +240,34 @@ export class WebSynthBackend implements SynthBackend {
     return 'ready';
   }
 
-  /** Best effort: without a user gesture behind it this is allowed to fail. */
+  /**
+   * Best effort, and bounded. Without a user gesture Chrome leaves `resume()`
+   * pending rather than rejecting it, so awaiting it unbounded blocks the whole
+   * cold load — the font never starts fetching and the Play button spins until
+   * the reader happens to click. The resume is kicked off and left to settle on
+   * its own (logging either way, even after the timeout), while the caller waits
+   * at most `RESUME_WAIT_MS`; `contextCanRun` then sees a still-suspended
+   * context and defers the rest, preloading the graph for the eventual gesture.
+   */
   private async resumeContext(): Promise<void> {
     const context = this.context as
       { state?: string; resume?: () => Promise<void> } | undefined;
     if (!context?.resume || context.state === 'running') return;
     debugAudio('resuming context', this.contextSnapshot());
-    try {
-      await context.resume();
-      debugAudio('context resume resolved', this.contextSnapshot());
-    } catch (error) {
-      debugAudio('context resume rejected', {
-        ...this.contextSnapshot(),
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // No gesture yet. `contextCanRun` will see it and defer the rest.
-    }
+    // Attached here, not awaited, so a rejection that arrives after the timeout
+    // has won the race is still handled rather than left unhandled.
+    const resumed = context.resume().then(
+      () => debugAudio('context resume resolved', this.contextSnapshot()),
+      (error: unknown) =>
+        debugAudio('context resume rejected', {
+          ...this.contextSnapshot(),
+          error: error instanceof Error ? error.message : String(error),
+        })
+    );
+    await Promise.race([
+      resumed,
+      new Promise<void>((resolve) => setTimeout(resolve, RESUME_WAIT_MS)),
+    ]);
   }
 
   private contextSnapshot(): Record<string, unknown> {
