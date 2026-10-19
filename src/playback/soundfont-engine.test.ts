@@ -377,15 +377,26 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
     return base;
   }
 
-  it('preloads the synth while the context is suspended', async () => {
-    // Resource loading happens before the first gesture so the Play button is
-    // ready immediately; the gesture only needs to resume the completed graph.
+  it('defers bring-up on a suspended context, offering Play instead of hanging', async () => {
+    // A suspended context never runs its AudioWorklet, where the soundfont is
+    // decoded, so attempting the decode there hangs forever. The engine defers:
+    // it does not call host.init, and it reports `ready` so a usable Play is
+    // offered — the gesture (see the next test) brings the synth up for real.
     const context = stubContext() as unknown as Record<string, unknown>;
     context.state = 'suspended';
+    context.resume = vi.fn(async () => {}); // no gesture: resume leaves it suspended
+    const loads: string[] = [];
     const { engine, host, plan } = setup(undefined, () => context as never);
+    engine.setObserver({
+      onPositionTick: () => {},
+      onActiveNotes: () => {},
+      onStateChange: () => {},
+      onLoadStateChange: s => loads.push(s.status),
+    });
     await engine.initialize();
     await engine.load(plan);
-    expect(host.init).toHaveBeenCalled();
+    expect(host.init).not.toHaveBeenCalled();
+    expect(loads.at(-1)).toBe('ready');
   });
 
   it('resumes the context and brings the synth up when play is pressed', async () => {
@@ -604,13 +615,16 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
     expect(host.init).toHaveBeenCalledTimes(1);
   });
 
-  it('does not cache a second synth initialization', async () => {
+  it('retries after a deferred bring-up rather than caching the deferral', async () => {
+    // A deferral (suspended context, no gesture) must not be remembered as done:
+    // the next attempt, once a gesture has resumed the context, has to bring the
+    // synth up for real.
     const context = stubContext() as unknown as Record<string, unknown>;
     context.state = 'suspended';
-    context.resume = vi.fn(async () => {});
+    context.resume = vi.fn(async () => {}); // first attempt: stays suspended → deferred
     const { engine, host } = setup(undefined, () => context as never);
     await engine.initialize();
-    expect(host.init).toHaveBeenCalledTimes(1);
+    expect(host.init).not.toHaveBeenCalled();
 
     context.resume = vi.fn(async () => {
       context.state = 'running';

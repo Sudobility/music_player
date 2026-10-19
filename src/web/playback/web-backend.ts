@@ -191,13 +191,22 @@ export class WebSynthBackend implements SynthBackend {
     await this.resumeContext();
     debugAudio('context resume attempted', this.contextSnapshot());
     if (!this.contextCanRun()) {
-      // Preload the font and worklet graph while Safari keeps the context
-      // suspended. The Play handler resumes the already-built graph from the
-      // user's gesture, so the first audible note starts immediately.
+      // No user gesture yet, so the AudioContext is suspended — and a suspended
+      // context never runs its AudioWorklet, which is where the soundfont is
+      // decoded. `host.init` below would therefore not fail; it would simply
+      // never return, hanging the Play button forever on a cold page load or a
+      // hard refresh. (Reproduced by opening a playback page directly vs.
+      // navigating to it from a link, which carries a gesture.) So defer the
+      // whole bring-up: report `ready` — as a `failed` load does — so the host
+      // shows a usable Play rather than a dead spinner, and let the Play
+      // gesture, which resumes the context, run `prepare` again and bring the
+      // synth up for real. `bringUp` bails on this `deferred` result.
       debugAudio(
-        'context suspended; preloading synth graph',
+        'context suspended; deferring bring-up until a user gesture',
         this.contextSnapshot()
       );
+      onProgress({ status: 'ready' });
+      return 'deferred';
     }
 
     onProgress({ status: 'loading', fraction: 0 });

@@ -359,17 +359,32 @@ export class SynthHost {
           }
         );
       }
+      // Load the soundfont BEFORE joining the live graph. A connected
+      // AudioWorkletNode has its `process()` pumped every render quantum on the
+      // same worklet thread that decodes the font, which starves the decode —
+      // measured at ~35s connected-first versus ~5s for the identical offline
+      // (unpumped) load. Decode on the still-unconnected node, then connect.
+      const sfontStart =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
+      this.sfontIds[i] = await synth.loadSFont(soundfont);
+      console.info('[ScoreSmith audio]', 'instance soundfont loaded', {
+        instance: i,
+        ms: Math.round(
+          (typeof performance !== 'undefined'
+            ? performance.now()
+            : Date.now()) - sfontStart
+        ),
+      });
+      this.sequencers[i] = await this.createSequencerFor(synth);
+      // The governor speaks for every instance, and it may already have spoken.
+      if (this.interpolation !== null)
+        synth.setInterpolation(this.interpolation, ALL_CHANNELS);
+      audioNode.connect(this.master);
       console.info('[ScoreSmith audio]', 'worklet node connected', {
         channelCount: audioNode.channelCount,
         channelCountMode: audioNode.channelCountMode,
         channelInterpretation: audioNode.channelInterpretation,
       });
-      audioNode.connect(this.master);
-      this.sfontIds[i] = await synth.loadSFont(soundfont);
-      this.sequencers[i] = await this.createSequencerFor(synth);
-      // The governor speaks for every instance, and it may already have spoken.
-      if (this.interpolation !== null)
-        synth.setInterpolation(this.interpolation, ALL_CHANNELS);
       this.synths[i] = synth;
     }
   }
