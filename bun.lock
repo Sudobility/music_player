@@ -6,7 +6,7 @@
       "name": "@sudobility/music_player",
       "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@sudobility/music_types": "^0.13.52",
+        "@sudobility/music_types": "^0.13.54",
         "@testing-library/react": "^16.3.3",
         "@types/node": "^26.2.0",
         "@types/react": "^19.0.0",
@@ -25,7 +25,7 @@
         "vitest": "^4.1.10",
       },
       "peerDependencies": {
-        "@sudobility/music_types": "^0.13.52",
+        "@sudobility/music_types": "^0.13.54",
         "js-synthesizer": "^1.13.0",
         "react": ">=18.0.0",
         "react-native-audio-api": ">=0.13.0",
@@ -130,9 +130,9 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@sudobility/music_types": ["@sudobility/music_types@0.13.52", "", { "peerDependencies": { "@sudobility/types": "^1.9.68", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-Ti4+1yrOFEz0w5zl/unkvS5f9ZfIATQSmnRz02nIvlRPBM+qUXSJwYr5Oc+4ts9FDLQ5c6TaXuUhO8gHBHojYQ=="],
+    "@sudobility/music_types": ["@sudobility/music_types@0.13.54", "https://npm.pkg.github.com/download/@sudobility/music_types/0.13.54/d973139b505fd1a66d06ddbfc5936616b099b2b3", { "peerDependencies": { "@sudobility/types": "^1.9.74", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-ugUh0IpygmraA9ImFDkdUFsR24SdyeE1QLbviunak0AOlFMCDg7Soo6Za8oEm0KpNZRZrjeO8KVACPNBQq6Bzg=="],
 
-    "@sudobility/types": ["@sudobility/types@1.9.66", "", {}, "sha512-eD61iT72sB5+1zJJtM81+eB0YmqEQ0dc/qno0Sw3GYJHcpkbgwN6LYEmiyJzlqtcN9sG5nWuexH9NnBvLODrtw=="],
+    "@sudobility/types": ["@sudobility/types@1.9.74", "https://npm.pkg.github.com/download/@sudobility/types/1.9.74/f9ad864ba5d8d1097e7e48378ebee8aa7e129e88", {}, "sha512-jgt0F1r71qjFNiRNn/1YlL4JU65sjnzYd8Sfi+Y9z62Lu9VhIXeqWAH12u7/hmGPZqG3nxzn0V+s3sFkB1qWuQ=="],
 
     "@testing-library/dom": ["@testing-library/dom@10.4.2", "", { "dependencies": { "@babel/code-frame": "^7.10.4", "@babel/runtime": "^7.12.5", "@types/aria-query": "^5.0.1", "aria-query": "5.3.0", "dom-accessibility-api": "^0.5.9", "lz-string": "^1.5.0", "picocolors": "1.1.1", "pretty-format": "^27.0.2" } }, "sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q=="],
 
