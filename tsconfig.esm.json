@@ -4,6 +4,7 @@
     "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "outDir": "./dist",
+    "rootDir": "./src",
     "declarationMap": true,
     "sourceMap": true,
     "noEmit": false
