@@ -23,6 +23,7 @@ export default [
       '@typescript-eslint': typescript,
     },
     rules: {
+      'preserve-caught-error': 'off',
       ...typescript.configs.recommended.rules,
       // TypeScript already resolves every identifier, and it does so knowing
       // about type-only names like `BlobPart` that eslint cannot see. Leaving
