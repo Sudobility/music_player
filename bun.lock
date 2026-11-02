@@ -6,7 +6,7 @@
       "name": "@sudobility/music_player",
       "devDependencies": {
         "@eslint/js": "~10.0.1",
-        "@sudobility/music_types": "^0.13.59",
+        "@sudobility/music_types": "^0.13.60",
         "@testing-library/react": "~16.3.3",
         "@types/node": "~26.6.5",
         "@types/react": "~19.3.0",
@@ -25,7 +25,7 @@
         "vitest": "~4.1.12",
       },
       "peerDependencies": {
-        "@sudobility/music_types": "^0.13.59",
+        "@sudobility/music_types": "^0.13.60",
         "js-synthesizer": "^1.13.0",
         "react": ">=18.0.0",
         "react-native-audio-api": ">=0.13.0",
@@ -136,7 +136,7 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@sudobility/music_types": ["@sudobility/music_types@0.13.59", "https://npm.pkg.github.com/download/@sudobility/music_types/0.13.59/d4216f3795dba11bb8ba6b43dea2046f04db3e9c", { "peerDependencies": { "@sudobility/types": "^1.9.76", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-DyWCDGi5V0IBEbMiMv9d8FgjCmV7hY2ft7v3Quj0rcR63aSSBAA7joQWnziVhgfUJXru5uUjFuLhOFbeObBa8g=="],
+    "@sudobility/music_types": ["@sudobility/music_types@0.13.60", "https://npm.pkg.github.com/download/@sudobility/music_types/0.13.60/486acb7db7040334b908cfb2882b2a497d47adaa", { "peerDependencies": { "@sudobility/types": "^1.9.78", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-Jzg3mTx9ubePX27awIy79W4bSyhvWW67RKqnBLuoRdz55J2omno0iKe6dKbvMBRgnFs/2LZn4DlkZmpcdNbhWA=="],
 
     "@sudobility/types": ["@sudobility/types@1.9.76", "https://npm.pkg.github.com/download/@sudobility/types/1.9.76/71635156f72fd9461107d5f147b3dc1c49f863d0", {}, "sha512-b7maZHR5wM84VlQ+l9R+2guzSOrExog6OUNy1oCe7h0abW13syycmnLQL0g+qql0aQ84qTB4A0mJelhY3Vef4Q=="],
 
