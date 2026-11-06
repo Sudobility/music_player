@@ -6,7 +6,7 @@
       "name": "@sudobility/music_player",
       "devDependencies": {
         "@eslint/js": "~10.0.1",
-        "@sudobility/music_types": "^0.13.60",
+        "@sudobility/music_types": "^0.13.61",
         "@testing-library/react": "~16.3.3",
         "@types/node": "~26.6.5",
         "@types/react": "~19.3.0",
@@ -14,7 +14,6 @@
         "@typescript-eslint/parser": "~8.72.0",
         "eslint": "~10.13.0",
         "globals": "~17.13.0",
-        "js-synthesizer": "~1.13.0",
         "jsdom": "~30.1.3",
         "prettier": "~3.9.10",
         "react": "~19.3.1",
@@ -25,15 +24,11 @@
         "vitest": "~4.1.12",
       },
       "peerDependencies": {
-        "@sudobility/music_types": "^0.13.60",
-        "js-synthesizer": "^1.13.0",
+        "@sudobility/music_types": "^0.13.61",
         "react": ">=18.0.0",
-        "react-native-audio-api": ">=0.13.0",
       },
       "optionalPeers": [
-        "js-synthesizer",
         "react",
-        "react-native-audio-api",
       ],
     },
   },
@@ -136,7 +131,7 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@sudobility/music_types": ["@sudobility/music_types@0.13.60", "https://npm.pkg.github.com/download/@sudobility/music_types/0.13.60/486acb7db7040334b908cfb2882b2a497d47adaa", { "peerDependencies": { "@sudobility/types": "^1.9.78", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-Jzg3mTx9ubePX27awIy79W4bSyhvWW67RKqnBLuoRdz55J2omno0iKe6dKbvMBRgnFs/2LZn4DlkZmpcdNbhWA=="],
+    "@sudobility/music_types": ["@sudobility/music_types@0.13.61", "https://npm.pkg.github.com/download/@sudobility/music_types/0.13.61/3b8db38ac4c8e7fdd0af2786a6e5c580ce72c517", { "peerDependencies": { "@sudobility/types": "^1.9.78", "immer": "^10.0.0 || ^11.0.0", "zod": "^4.0.0" } }, "sha512-Sl0MMJOHvWGaLV6XwMHVQ7rrtXWHlZOBvXM5SCZsjXp8QgmeIaLIOo49P8nt2Fy7584feD+H2koPyUy6yPQO4g=="],
 
     "@sudobility/types": ["@sudobility/types@1.9.76", "https://npm.pkg.github.com/download/@sudobility/types/1.9.76/71635156f72fd9461107d5f147b3dc1c49f863d0", {}, "sha512-b7maZHR5wM84VlQ+l9R+2guzSOrExog6OUNy1oCe7h0abW13syycmnLQL0g+qql0aQ84qTB4A0mJelhY3Vef4Q=="],
 
@@ -309,8 +304,6 @@
     "is-potential-custom-element-name": ["is-potential-custom-element-name@1.0.1", "", {}, "sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ=="],
 
     "isexe": ["isexe@2.0.0", "", {}, "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw=="],
-
-    "js-synthesizer": ["js-synthesizer@1.13.0", "", {}, "sha512-KXhyJcY90mUvJwbfF1aBNurodm16w8R/wrZYRRc+SSlm58EtL88bspbs7ixtAmoV9QQvf/2EuPAwxj2ExdZSmQ=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 

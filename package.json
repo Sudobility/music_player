@@ -1,22 +1,15 @@
 {
   "name": "@sudobility/music_player",
-  "version": "0.1.80",
+  "version": "0.1.81",
   "description": "Playback for ScoreSmith: transport, synth engines and offline rendering, for web and React Native",
   "author": "Sudobility",
   "license": "BUSL-1.1",
   "type": "module",
   "exports": {
     ".": {
-      "react-native": {
-        "types": "./dist/rn/index.d.ts",
-        "import": "./dist/rn/index.js",
-        "default": "./dist/rn/index.js"
-      },
-      "default": {
-        "types": "./dist/web/index.d.ts",
-        "import": "./dist/web/index.js",
-        "default": "./dist/web/index.js"
-      }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./core": {
       "types": "./dist/core.d.ts",
@@ -28,30 +21,10 @@
       "import": "./dist/react/index.js",
       "default": "./dist/react/index.js"
     },
-    "./web": {
-      "types": "./dist/web/index.d.ts",
-      "import": "./dist/web/index.js",
-      "default": "./dist/web/index.js"
-    },
-    "./rn": {
-      "types": "./dist/rn/index.d.ts",
-      "import": "./dist/rn/index.js",
-      "default": "./dist/rn/index.js"
-    },
     "./mocks": {
       "types": "./dist/mocks/index.d.ts",
       "import": "./dist/mocks/index.js",
       "default": "./dist/mocks/index.js"
-    },
-    "./rn/expression-table": {
-      "types": "./dist/rn/playback/expression-table.d.ts",
-      "import": "./dist/rn/playback/expression-table.js",
-      "default": "./dist/rn/playback/expression-table.js"
-    },
-    "./rn/gm-pack-name": {
-      "types": "./dist/rn/playback/gm-pack-name.d.ts",
-      "import": "./dist/rn/playback/gm-pack-name.js",
-      "default": "./dist/rn/playback/gm-pack-name.js"
     }
   },
   "files": [
@@ -78,25 +51,17 @@
     "prepublishOnly": "bun run clean && bun run verify"
   },
   "peerDependencies": {
-    "@sudobility/music_types": "^0.13.60",
-    "js-synthesizer": "^1.13.0",
-    "react-native-audio-api": ">=0.13.0",
+    "@sudobility/music_types": "^0.13.61",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
-    "js-synthesizer": {
-      "optional": true
-    },
-    "react-native-audio-api": {
-      "optional": true
-    },
     "react": {
       "optional": true
     }
   },
   "devDependencies": {
     "@eslint/js": "~10.0.1",
-    "@sudobility/music_types": "^0.13.60",
+    "@sudobility/music_types": "^0.13.61",
     "@testing-library/react": "~16.3.3",
     "@types/node": "~26.6.5",
     "@types/react": "~19.3.0",
@@ -104,7 +69,6 @@
     "@typescript-eslint/parser": "~8.72.0",
     "eslint": "~10.13.0",
     "globals": "~17.13.0",
-    "js-synthesizer": "~1.13.0",
     "jsdom": "~30.1.3",
     "prettier": "~3.9.10",
     "react": "~19.3.1",

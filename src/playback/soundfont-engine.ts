@@ -15,23 +15,30 @@
  * last one accumulated four silent-failure bugs.
  */
 import type {
+  ChannelAssignment,
   MetronomeClick,
   PlaybackLoadState,
   PlaybackPlan,
   PlaybackTrack,
+  ScheduledClick,
   ScoreRange,
+  SynthBackend,
   TempoConversion,
+} from '@sudobility/music_types';
+import {
+  allocateChannels,
+  CC_EXPRESSION,
+  CC_PAN,
+  CC_VOLUME,
+  CHANNELS_PER_INSTANCE,
+  instrumentExpression,
+  percussionExpression,
 } from '@sudobility/music_types';
 import type {
   AuditionVoice,
   PlaybackEngine,
   PlaybackObserver,
 } from '../engine.js';
-import {
-  allocateChannels,
-  CHANNELS_PER_INSTANCE,
-} from './channel-allocator.js';
-import type { ChannelAssignment } from './channel-allocator.js';
 import { PlaybackClock } from './clock.js';
 import { NoteQueue } from '../shared/note-queue.js';
 import { SoundingSet } from '../shared/sounding-set.js';
@@ -42,12 +49,6 @@ import {
   visualOffsetSeconds,
 } from '../shared/visual-sync.js';
 import { Governor } from './governor.js';
-import type { ScheduledClick, SynthBackend } from './synth-backend.js';
-import { CC_EXPRESSION, CC_PAN, CC_VOLUME } from '@sudobility/music_types';
-import {
-  instrumentExpression,
-  percussionExpression,
-} from '../shared/instrument-gain.js';
 
 export type SoundfontEngineDeps = {
   /** Everything that makes sound: the synths, the clock, the font, the click. */

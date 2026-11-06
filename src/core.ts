@@ -2,16 +2,13 @@
  * The platform-free half: the interface and the singleton, and nothing that
  * makes a sound.
  *
- * Its own entry point so a package that only *drives* playback does not pull an
- * audio engine in with it. `music_lib` is exactly that case — it holds an
+ * Its own entry point so a package that only *drives* playback does not pull
+ * the scheduler in with it. `music_lib` is exactly that case — it holds an
  * `IMusicPlayer` and calls it, and its own guard test asserts it declares no
- * platform dependency. Importing this package's root would resolve to the web
- * entry and drag in `AudioWorklet` and `js-synthesizer`, which would make that
- * assertion false.
- *
- * Same reasoning as `@sudobility/music_player/rn/expression-table`: a subpath
- * exists so a consumer can reach one dependency-free thing without the peers
- * that surround it.
+ * platform dependency. Importing this package's root would resolve to a
+ * platform entry and bring `MusicPlayer` and `SoundfontPlaybackEngine` with it;
+ * this subpath exposes only the interface, the singleton and the plan, so a
+ * consumer can reach them without the engine around them.
  */
 export * from './types.js';
 /** The engine contract, for a platform implementing one. */

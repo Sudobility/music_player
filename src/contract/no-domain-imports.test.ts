@@ -46,19 +46,14 @@ describe('package boundaries', () => {
     expect(Object.keys(pkg.dependencies ?? {})).toEqual([]);
     expect(Object.keys(pkg.peerDependencies ?? {}).sort()).toEqual([
       '@sudobility/music_types',
-      'js-synthesizer',
       'react',
-      'react-native-audio-api',
     ]);
-    // The two engine libraries are optional: a web app installs js-synthesizer,
-    // a React Native app installs react-native-audio-api, and neither should be
-    // forced to carry the other's. React is optional too: only the `./react`
-    // entry (`usePlaybackReadiness`) needs it, and a host that drives playback
-    // from outside React must not be made to install it.
-    expect(pkg.peerDependenciesMeta['js-synthesizer'].optional).toBe(true);
-    expect(pkg.peerDependenciesMeta['react-native-audio-api'].optional).toBe(
-      true
-    );
+    // No synth library is a peer any more: the concrete synths moved to their
+    // own packages (`@sudobility/music_synth`, `music_synth_rn`,
+    // `music_sample_engine`), which carry js-synthesizer / react-native-audio-api
+    // themselves. This package is only the scheduler. React stays optional:
+    // only the `./react` entry (`usePlaybackReadiness`) needs it, and a host
+    // that drives playback from outside React must not be made to install it.
     expect(pkg.peerDependenciesMeta['react'].optional).toBe(true);
   });
 });

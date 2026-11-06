@@ -3,25 +3,21 @@
  *
  * Every case here is a fault that was silent by construction: the transport
  * ran, the notes were dispatched, and either nothing came out or the wrong
- * instrument did. The unit under test is therefore always "what was the host
+ * instrument did. The unit under test is therefore always "what was the synth
  * told", because that is the last point before the audio thread where a
- * misrouted instrument is still observable.
+ * misrouted instrument is still observable — so the engine is driven through a
+ * `FakeSynthBackend` that records exactly that.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { planOfTracks } from '../../shared/test-plan.js';
-import { WebSynthBackend } from './web-backend.js';
-import { SoundfontPlaybackEngine } from '../../playback/soundfont-engine.js';
-import { allocateChannels } from '../../playback/channel-allocator.js';
+import { planOfTracks } from '../shared/test-plan.js';
+import { SoundfontPlaybackEngine } from './soundfont-engine.js';
+import { FakeSynthBackend } from '../test/fake-synth-backend.js';
+import { allocateChannels } from '@sudobility/music_types';
 
 function stubHost() {
   const noteOn = vi.fn();
   return {
-    init: vi.fn(
-      async (
-        _context: BaseAudioContext,
-        _options: { instanceCount: number }
-      ) => {}
-    ),
+    init: vi.fn(async (_options?: { instanceCount: number }) => {}),
     ensureInstances: vi.fn(async () => {}),
     setChannelPercussion: vi.fn(),
     programSelect: vi.fn(),
@@ -48,27 +44,10 @@ function stubHost() {
   };
 }
 
-function stubContext() {
-  const node = () => ({ connect: vi.fn(), disconnect: vi.fn() });
-  return {
-    sampleRate: 44100,
-    currentTime: 0,
-    destination: node(),
-    close: vi.fn(),
-    createGain: vi.fn(() => ({ ...node(), gain: { value: 1 } })),
-  } as unknown as AudioContext;
-}
-
 function engineWith() {
   const host = stubHost();
   const engine = new SoundfontPlaybackEngine({
-    backend: new WebSynthBackend({
-      host,
-      moduleUrls: { fluidsynth: 'f.js', worklet: 'w.js' },
-      fontUrl: 'font.sf3',
-      loadFont: async () => new Uint8Array(4).buffer,
-      createContext: () => stubContext(),
-    }),
+    backend: new FakeSynthBackend(host, { now: () => 0 }),
     now: () => 0,
     startPump: () => () => {},
   });
@@ -91,7 +70,7 @@ describe('instrument routing', () => {
       plan.tracks.map(t => ({ id: t.id, isPercussion: false }))
     );
     expect(instanceCount).toBe(2);
-    expect(host.init.mock.calls[0][1].instanceCount).toBe(2);
+    expect(host.init.mock.calls[0][0]?.instanceCount).toBe(2);
   });
 
   it('keeps a seventeen-part score on one synth', async () => {
@@ -99,14 +78,14 @@ describe('instrument routing', () => {
     const { host, engine } = engineWith();
     await engine.load(planOfTracks(17));
     await engine.initialize();
-    expect(host.init.mock.calls[0][1].instanceCount).toBe(1);
+    expect(host.init.mock.calls[0][0]?.instanceCount).toBe(1);
   });
 
   it('grows the host when a bigger score is loaded after start-up', async () => {
     const { host, engine } = engineWith();
     await engine.load(planOfTracks(2));
     await engine.initialize();
-    expect(host.init.mock.calls[0][1].instanceCount).toBe(1);
+    expect(host.init.mock.calls[0][0]?.instanceCount).toBe(1);
 
     await engine.load(planOfTracks(241));
     expect(host.ensureInstances).toHaveBeenCalledWith(2);

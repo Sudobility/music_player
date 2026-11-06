@@ -1,8 +1,8 @@
 import { RENDER_DELAY_SECONDS } from '../shared/visual-sync.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { PlaybackLoadState, PlaybackPlan } from '@sudobility/music_types';
-import { WebSynthBackend } from '../web/playback/web-backend.js';
-import type { WebBackendDeps } from '../web/playback/web-backend.js';
+import { FakeSynthBackend } from '../test/fake-synth-backend.js';
+import type { FakePrepare } from '../test/fake-synth-backend.js';
 import { SoundfontPlaybackEngine } from './soundfont-engine.js';
 import {
   TICKS_PER_SECOND,
@@ -12,30 +12,15 @@ import {
   twoTrackPlan,
 } from '../shared/test-plan.js';
 
-/** Records everything the engine tells the synth host. */
 /**
- * Builds the engine from the flat options these tests have always used.
+ * Records everything the engine tells the synth.
  *
- * The web-shaped half — context, font, worklet URLs — now belongs to
- * `WebSynthBackend` rather than to the scheduler, so it is split out here. The
- * tests keep exercising the real backend, which is the point: the suspended
- * context, the load progress and the font failure are its rules now, and they
- * would otherwise have lost their only coverage in the move.
+ * The scheduler is tested against `FakeSynthBackend` (which wraps this), not
+ * the real web synth: `WebSynthBackend`'s own rules — the suspended context,
+ * the load progress, the font failure — moved to `@sudobility/music_synth` with
+ * the backend, and are tested there. Here the backend is only a recorder with a
+ * clock and an injectable `prepare`, which is all the scheduler can observe.
  */
-function engineWith(
-  opts: WebBackendDeps & {
-    now?: () => number;
-    startPump?: (tick: () => void, intervalMs: number) => () => void;
-  }
-): SoundfontPlaybackEngine {
-  const { now, startPump, ...web } = opts;
-  return new SoundfontPlaybackEngine({
-    backend: new WebSynthBackend(web),
-    ...(now ? { now } : {}),
-    ...(startPump ? { startPump } : {}),
-  });
-}
-
 function stubHost() {
   const noteOn = vi.fn();
   return {
@@ -64,56 +49,6 @@ function stubHost() {
     setTrackCount: vi.fn(),
     dispose: vi.fn(),
   };
-}
-
-/** One scheduled metronome click, as the fake graph saw it. */
-type ClickRecord = { startAt: number; stopAt: number };
-
-/** Enough AudioContext for the metronome click, and nothing more. */
-function stubContext() {
-  const param = () => ({
-    value: 0,
-    setValueAtTime: vi.fn(),
-    exponentialRampToValueAtTime: vi.fn(),
-    cancelScheduledValues: vi.fn(),
-  });
-  const clicks: ClickRecord[] = [];
-  return {
-    sampleRate: 44100,
-    currentTime: 0,
-    clicks,
-    destination: { connect: vi.fn(), disconnect: vi.fn() },
-    close: vi.fn(),
-    createOscillator: vi.fn(() => {
-      const record: ClickRecord = { startAt: 0, stopAt: 0 };
-      clicks.push(record);
-      return {
-        frequency: { value: 0 },
-        connect: vi.fn(),
-        disconnect: vi.fn(),
-        start: vi.fn((at: number) => {
-          record.startAt = at;
-        }),
-        // Last call wins, exactly as Web Audio treats a re-stop.
-        stop: vi.fn((at: number) => {
-          record.stopAt = at;
-        }),
-        onended: null,
-      };
-    }),
-    createGain: vi.fn(() => ({
-      gain: param(),
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    })),
-  } as unknown as AudioContext & { clicks: ClickRecord[] };
-}
-
-/** The fake graph behind a running engine, for asserting on scheduled clicks. */
-function graphOf(context: () => AudioContext | null): {
-  clicks: ClickRecord[];
-} {
-  return context() as unknown as { clicks: ClickRecord[] };
 }
 
 /** A pump we step by hand, so tests never wait on real time. */
@@ -150,32 +85,40 @@ const SOUNDING_MS = 16;
 
 function setup(
   plan?: PlaybackPlan,
-  createContext: () => AudioContext = () => stubContext()
+  opts: {
+    /** Seconds of output latency the engine should read. */
+    outputLatency?: number;
+    /** How the synth's bring-up behaves; default is a warm synth. */
+    prepare?: FakePrepare;
+    /** Defer bring-up until a gesture (`play`/`noteOn`), like a suspended context. */
+    deferUntilActivated?: boolean;
+  } = {}
 ) {
   const host = stubHost();
-  // Captured on the way past: the context belongs to the backend now, and a
-  // test that reached into the engine for it was reading an implementation
-  // detail that has since moved.
-  let context: AudioContext | null = null;
-  const capture = () => (context = createContext());
   const pump = manualPump();
   const clock = { t: 0 };
-  const engine = engineWith({
-    host,
-    moduleUrls: { fluidsynth: 'f.js', worklet: 'w.js' },
-    fontUrl: 'font.sf3',
-    loadFont: async () => new Uint8Array(4).buffer,
-    createContext: capture,
+  const backend = new FakeSynthBackend(host, {
+    now: () => clock.t,
+    prepare: opts.prepare,
+    deferUntilActivated: opts.deferUntilActivated,
+  });
+  if (opts.outputLatency !== undefined) {
+    backend.outputLatencySeconds = opts.outputLatency;
+  }
+  const engine = new SoundfontPlaybackEngine({
+    backend,
     now: () => clock.t,
     startPump: pump.start,
   });
   return {
     engine,
     host,
+    backend,
     pump,
     clock,
     plan: plan ?? twoTrackPlan(),
-    context: () => context,
+    /** The metronome clicks the engine has scheduled on the backend. */
+    clicks: () => backend.clicks,
   };
 }
 
@@ -367,26 +310,50 @@ describe('SoundfontPlaybackEngine: mixing', () => {
 });
 
 describe('SoundfontPlaybackEngine: bringing the synth up', () => {
-  /** A context that starts suspended, as a browser gives you without a gesture. */
-  function suspendableContext(): Record<string, unknown> {
-    const base = stubContext() as unknown as Record<string, unknown>;
-    base.state = 'suspended';
-    base.resume = vi.fn(async () => {
-      base.state = 'running';
-    });
-    return base;
+  // The engine only sees the backend's `SynthBackend` surface, so these drive
+  // `prepare` directly instead of a suspended `AudioContext`. `WebSynthBackend`'s
+  // own rules — deferring on a suspended context, resuming on a gesture, the
+  // fetch-progress fractions — are tested in `@sudobility/music_synth`.
+
+  /** A synth that defers the first bring-up and comes up on the next. */
+  function deferredThenReady(): FakePrepare {
+    let first = true;
+    return async (options, host) => {
+      if (first) {
+        first = false;
+        return 'deferred';
+      }
+      await host.init(options);
+      return 'ready';
+    };
   }
 
-  it('defers bring-up on a suspended context, offering Play instead of hanging', async () => {
-    // A suspended context never runs its AudioWorklet, where the soundfont is
-    // decoded, so attempting the decode there hangs forever. The engine defers:
-    // it does not call host.init, and it reports `ready` so a usable Play is
-    // offered — the gesture (see the next test) brings the synth up for real.
-    const context = stubContext() as unknown as Record<string, unknown>;
-    context.state = 'suspended';
-    context.resume = vi.fn(async () => {}); // no gesture: resume leaves it suspended
+  /** A synth whose bring-up hangs until the returned `release` is called. */
+  function pendingPrepare() {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const prepare: FakePrepare = async ({ onProgress }, host) => {
+      onProgress({ status: 'loading', fraction: null });
+      await gate;
+      await host.init();
+      return 'ready';
+    };
+    return { prepare, release };
+  }
+
+  it('stays retryable and reports ready when the synth defers', async () => {
+    // A deferral (a suspended context, in the web backend) is not a failure: the
+    // engine does not bring the synth up, and it forwards the backend's `ready`
+    // so a usable Play is still offered. The gesture brings it up for real.
     const loads: string[] = [];
-    const { engine, host, plan } = setup(undefined, () => context as never);
+    const { engine, host, plan } = setup(undefined, {
+      prepare: async ({ onProgress }) => {
+        onProgress({ status: 'ready' });
+        return 'deferred';
+      },
+    });
     engine.setObserver({
       onPositionTick: () => {},
       onActiveNotes: () => {},
@@ -399,52 +366,22 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
     expect(loads.at(-1)).toBe('ready');
   });
 
-  it('resumes the context and brings the synth up when play is pressed', async () => {
-    // Play is a user gesture, which is what makes resuming allowed.
-    const context = suspendableContext();
-    const { engine, host, plan } = setup(undefined, () => context as never);
-    await engine.load(plan);
-    await engine.initialize();
-    expect(host.init).toHaveBeenCalled();
-
-    await engine.play();
-    expect(context.resume as ReturnType<typeof vi.fn>).toHaveBeenCalled();
-    expect(host.init).toHaveBeenCalled();
-  });
-
-  it('tells the host about a score that arrived before the synth existed', async () => {
+  it('tells the synth about a score that arrived before it existed', async () => {
     // load no longer waits for the synth, so the programs and levels it
     // would have sent have to be sent once there is something to send them to.
-    const context = suspendableContext();
-    const { engine, host, plan } = setup(undefined, () => context as never);
+    const { engine, host, plan } = setup(undefined, {
+      deferUntilActivated: true,
+    });
     await engine.load(plan);
+    // load() brings the synth up fire-and-forget; let that deferral settle so
+    // the gesture below starts a fresh attempt rather than awaiting the old one.
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(host.programSelect).not.toHaveBeenCalled();
 
     await engine.play();
     expect(host.programSelect).toHaveBeenCalled();
     expect(host.setTrackCount).toHaveBeenCalledWith(plan.tracks.length);
   });
-
-  /** An engine whose soundfont does not arrive until the returned `release` is called. */
-  function withPendingFont() {
-    let release!: () => void;
-    const font = new Promise<ArrayBuffer>(resolve => {
-      release = () => resolve(new Uint8Array(4).buffer);
-    });
-    const host = stubHost();
-    const pump = manualPump();
-    const context = suspendableContext();
-    const engine = engineWith({
-      host,
-      moduleUrls: { fluidsynth: 'f.js', worklet: 'w.js' },
-      fontUrl: 'font.sf3',
-      loadFont: () => font,
-      createContext: () => context as never,
-      now: () => 0,
-      startPump: pump.start,
-    });
-    return { engine, host, pump, release };
-  }
 
   it('does not report playing until the synth can actually sound', async () => {
     // This used to report "playing" immediately, so the button would not look
@@ -456,7 +393,8 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
     //
     // The load indicator (`PlaybackLoadState`, reported below) is what fills
     // that window now, which is what makes honest reporting affordable.
-    const { engine, pump, release } = withPendingFont();
+    const { prepare, release } = pendingPrepare();
+    const { engine, pump } = setup(undefined, { prepare });
     const states: string[] = [];
     const loads: string[] = [];
     engine.setObserver({
@@ -469,7 +407,6 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
 
     const playing = engine.play();
     expect(states).toEqual([]); // nothing is playing yet, and nothing claims to be
-    // The load is reported once the context is running, a microtask later.
     await vi.waitFor(() => expect(loads).toContain('loading')); // the transport knows why
     expect(states).toEqual([]); // and still says nothing about playing
     expect(pump.running).toBe(false);
@@ -502,7 +439,8 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
   });
 
   it('does not start playing if the user pauses while the synth loads', async () => {
-    const { engine, pump, release } = withPendingFont();
+    const { prepare, release } = pendingPrepare();
+    const { engine, pump } = setup(undefined, { prepare });
     await engine.load(twoTrackPlan());
 
     const playing = engine.play();
@@ -512,55 +450,12 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
     expect(pump.running).toBe(false);
   });
 
-  it('reports fetch progress, then indeterminate, then ready', async () => {
-    // Without this the transport looks broken for the whole load. The fetch is
-    // the measurable half; handing the font to fluidsynth reports nothing.
-    const host = stubHost();
-    const context = suspendableContext();
-    const engine = engineWith({
-      host,
-      moduleUrls: { fluidsynth: 'f.js', worklet: 'w.js' },
-      fontUrl: 'font.sf3',
-      loadFont: async (_url, onProgress) => {
-        onProgress?.({ loaded: 50, total: 100 });
-        onProgress?.({ loaded: 100, total: 100 });
-        return new Uint8Array(4).buffer;
-      },
-      createContext: () => context as never,
-      now: () => 0,
-      startPump: manualPump().start,
-    });
-    const seen: PlaybackLoadState[] = [];
-    engine.setObserver({
-      onPositionTick: () => {},
-      onActiveNotes: () => {},
-      onStateChange: () => {},
-      onLoadStateChange: s => seen.push(s),
-    });
-
-    await engine.initialize();
-    expect(seen.at(-1)).toEqual({ status: 'ready' });
-    // Fetching never claims the whole bar: seconds of decoding follow it, so a
-    // completed download reads as half done, then goes indeterminate.
-    const fractions = seen
-      .filter(s => s.status === 'loading')
-      .map(s => s.fraction);
-    expect(fractions).toEqual([0, 0.25, 0.5, null]);
-  });
-
   it('reports a failure rather than going quiet', async () => {
     // A font that will not load is otherwise indistinguishable from silence.
-    const context = suspendableContext();
-    const engine = engineWith({
-      host: stubHost(),
-      moduleUrls: { fluidsynth: 'f.js', worklet: 'w.js' },
-      fontUrl: 'font.sf3',
-      loadFont: async () => {
+    const { engine } = setup(undefined, {
+      prepare: async () => {
         throw new Error('Soundfont fetch failed: 404');
       },
-      createContext: () => context as never,
-      now: () => 0,
-      startPump: manualPump().start,
     });
     const seen: PlaybackLoadState[] = [];
     engine.setObserver({
@@ -616,19 +511,13 @@ describe('SoundfontPlaybackEngine: bringing the synth up', () => {
   });
 
   it('retries after a deferred bring-up rather than caching the deferral', async () => {
-    // A deferral (suspended context, no gesture) must not be remembered as done:
-    // the next attempt, once a gesture has resumed the context, has to bring the
-    // synth up for real.
-    const context = stubContext() as unknown as Record<string, unknown>;
-    context.state = 'suspended';
-    context.resume = vi.fn(async () => {}); // first attempt: stays suspended → deferred
-    const { engine, host } = setup(undefined, () => context as never);
+    // A deferral (a suspended context with no gesture, in the web backend) must
+    // not be remembered as done: the next attempt has to bring the synth up for
+    // real rather than reuse the cached deferral.
+    const { engine, host } = setup(undefined, { prepare: deferredThenReady() });
     await engine.initialize();
     expect(host.init).not.toHaveBeenCalled();
 
-    context.resume = vi.fn(async () => {
-      context.state = 'running';
-    });
     await engine.initialize();
     expect(host.init).toHaveBeenCalledTimes(1);
   });
@@ -749,23 +638,19 @@ describe('SoundfontPlaybackEngine: transport', () => {
   });
 
   it('clicks only when the metronome is on', async () => {
-    const { engine, pump, clock, plan, context } = setup();
+    const { engine, pump, clock, plan, clicks } = setup();
     await engine.initialize();
     await engine.load(plan);
     await engine.play();
 
     clock.t = 1;
     pump.step();
-    expect(
-      vi.mocked((context() as AudioContext).createOscillator)
-    ).not.toHaveBeenCalled();
+    expect(clicks()).toHaveLength(0);
 
     engine.setMetronome(true);
     clock.t = 2;
     pump.step();
-    expect(
-      vi.mocked((context() as AudioContext).createOscillator)
-    ).toHaveBeenCalled();
+    expect(clicks().length).toBeGreaterThan(0);
   });
 
   it('silences everything on stop rather than leaving notes ringing', async () => {
@@ -1032,9 +917,7 @@ describe('SoundfontPlaybackEngine: sounding notes', () => {
     // heard: with a long output latency the music is further behind, so the
     // lights have to wait for it. Exaggerated here to be unmistakable — a real
     // machine reports ~20ms, which nearly cancels the render delay.
-    const laggy = stubContext();
-    (laggy as unknown as { outputLatency: number }).outputLatency = 5;
-    const slow = setup(undefined, () => laggy as unknown as AudioContext);
+    const slow = setup(undefined, { outputLatency: 5 });
     const a = observed();
     slow.engine.setObserver(a.observer);
     await slow.engine.initialize();
@@ -1072,9 +955,7 @@ describe('SoundfontPlaybackEngine: sounding notes', () => {
       Exaggerated here to be unmistakable; a real machine reports ~20ms, which
       nearly cancels the render delay.
     */
-    const laggy = stubContext();
-    (laggy as unknown as { outputLatency: number }).outputLatency = 5;
-    const slow = setup(undefined, () => laggy as unknown as AudioContext);
+    const slow = setup(undefined, { outputLatency: 5 });
     const a = observed();
     slow.engine.setObserver(a.observer);
     await slow.engine.initialize();
@@ -1109,9 +990,7 @@ describe('SoundfontPlaybackEngine: sounding notes', () => {
       caret sits at half the full-speed tick, not further back still.
     */
     async function reportedAt(speed: number) {
-      const laggy = stubContext();
-      (laggy as unknown as { outputLatency: number }).outputLatency = 0.3;
-      const run = setup(undefined, () => laggy as unknown as AudioContext);
+      const run = setup(undefined, { outputLatency: 0.3 });
       const seen = observed();
       run.engine.setObserver(seen.observer);
       await run.engine.initialize();
@@ -1193,12 +1072,7 @@ describe('SoundfontPlaybackEngine: sounding notes', () => {
       clicking the sheet land somewhere else — and by a different amount on
       every machine.
     */
-    const laggy = stubContext();
-    (laggy as unknown as { outputLatency: number }).outputLatency = 5;
-    const { engine, plan } = setup(
-      undefined,
-      () => laggy as unknown as AudioContext
-    );
+    const { engine, plan } = setup(undefined, { outputLatency: 5 });
     const { onPositionTick, observer } = observed();
     engine.setObserver(observer);
     await engine.initialize();
@@ -1303,15 +1177,14 @@ describe('SoundfontPlaybackEngine: the metronome', () => {
     // the transport does afterwards. Nothing in `allSoundOff` reaches them —
     // that speaks to the synth — so pausing left the room ticking for four
     // seconds after the music stopped.
-    const { engine, pump, clock, plan, context } = setup();
+    const { engine, pump, clock, plan, clicks } = setup();
     await engine.initialize();
     await engine.load(plan);
     engine.setMetronome(true);
     await engine.play();
     pump.step();
 
-    const { clicks } = graphOf(context);
-    const pending = clicks.filter(c => c.startAt > 0.5);
+    const pending = clicks().filter(c => c.startAt > 0.5);
     expect(pending.length).toBeGreaterThan(0);
 
     clock.t = 0.5;
@@ -1322,7 +1195,7 @@ describe('SoundfontPlaybackEngine: the metronome', () => {
   });
 
   it('stops clicking within a beat of being switched off, not a horizon later', async () => {
-    const { engine, pump, clock, plan, context } = setup();
+    const { engine, pump, clock, plan, clicks } = setup();
     await engine.initialize();
     await engine.load(plan);
     engine.setMetronome(true);
@@ -1331,7 +1204,7 @@ describe('SoundfontPlaybackEngine: the metronome', () => {
 
     clock.t = 0.5;
     engine.setMetronome(false);
-    const pending = graphOf(context).clicks.filter(c => c.startAt > 0.5);
+    const pending = clicks().filter(c => c.startAt > 0.5);
     for (const click of pending)
       expect(click.stopAt).toBeLessThanOrEqual(click.startAt);
   });
@@ -1361,7 +1234,7 @@ describe('SoundfontPlaybackEngine: looping', () => {
   });
 
   it('does not click past the loop end either', async () => {
-    const { engine, pump, plan, context } = setup();
+    const { engine, pump, plan, clicks } = setup();
     await engine.initialize();
     await engine.load(plan);
     engine.setMetronome(true);
@@ -1371,9 +1244,7 @@ describe('SoundfontPlaybackEngine: looping', () => {
 
     // Ticks 0, 480, 960, 1440 — the click at 1920 belongs to the next pass,
     // where it is the downbeat of the loop's first beat.
-    expect(graphOf(context).clicks.map(c => c.startAt)).toEqual([
-      0, 0.5, 1, 1.5,
-    ]);
+    expect(clicks().map(c => c.startAt)).toEqual([0, 0.5, 1, 1.5]);
   });
 
   it('keeps looping past the last note rather than stopping the transport', async () => {
