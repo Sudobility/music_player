@@ -25,8 +25,8 @@ import type { PlaybackEngine } from './engine.js';
 import { getMusicPositionSource } from '@sudobility/music_types';
 import { PlaybackBus } from './shared/bus.js';
 import { playbackPlan, playbackTracks, resolveVoice } from './shared/plan.js';
-import { readinessOf } from './types.js';
-import type { IMusicPlayer, PlaybackReadiness, Unsubscribe } from './types.js';
+import { readinessOf } from '@sudobility/music_types';
+import type { IMusicPlayer, PlaybackReadiness, Unsubscribe } from '@sudobility/music_types';
 
 export class MusicPlayer implements IMusicPlayer {
   /**

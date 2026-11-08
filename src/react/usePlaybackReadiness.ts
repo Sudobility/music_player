@@ -20,7 +20,7 @@
  * to provide that gesture.
  */
 import { useEffect, useSyncExternalStore } from 'react';
-import type { IMusicPlayer, PlaybackReadiness } from '../types.js';
+import type { IMusicPlayer, PlaybackReadiness } from '@sudobility/music_types';
 
 export type UsePlaybackReadinessOptions = {
   /**

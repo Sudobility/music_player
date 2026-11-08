@@ -8,7 +8,7 @@
  * and two players would be two playheads, which is exactly the disagreement
  * `MusicPosition` exists to prevent.
  */
-import type { IMusicPlayer } from './types.js';
+import type { IMusicPlayer } from '@sudobility/music_types';
 
 let instance: IMusicPlayer | null = null;
 

@@ -17,7 +17,6 @@
  * so this entry builds no player and knows no soundfont — which is why it is
  * the same code for both platforms and no longer needs a web/rn split.
  */
-export * from './types.js';
 export * from './singleton.js';
 export { MusicPlayer } from './player.js';
 export { SoundfontPlaybackEngine } from './playback/soundfont-engine.js';

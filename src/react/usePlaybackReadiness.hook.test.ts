@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { PlaybackLoadState } from '@sudobility/music_types';
-import type { IMusicPlayer } from '../types.js';
-import { readinessOf } from '../types.js';
+import type { IMusicPlayer } from '@sudobility/music_types';
+import { readinessOf } from '@sudobility/music_types';
 import { usePlaybackReadiness } from './usePlaybackReadiness.js';
 
 /** A player that reports what it is told to, and counts the asks. */

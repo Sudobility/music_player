@@ -7,10 +7,10 @@
  * `IMusicPlayer` and calls it, and its own guard test asserts it declares no
  * platform dependency. Importing this package's root would resolve to a
  * platform entry and bring `MusicPlayer` and `SoundfontPlaybackEngine` with it;
- * this subpath exposes only the interface, the singleton and the plan, so a
- * consumer can reach them without the engine around them.
+ * this subpath exposes only the singleton and the plan, so a consumer can reach
+ * them without the engine around them. The `IMusicPlayer` interface itself now
+ * lives in `@sudobility/music_types`, beside the other playback contracts.
  */
-export * from './types.js';
 /** The engine contract, for a platform implementing one. */
 export * from './engine.js';
 export * from './singleton.js';

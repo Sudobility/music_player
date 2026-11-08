@@ -3,7 +3,7 @@
  * shows that it is.
  */
 import { describe, expect, it } from 'vitest';
-import { readinessOf } from '../types.js';
+import { readinessOf } from '@sudobility/music_types';
 
 describe('readiness from the load state', () => {
   it('is preparing while loading and ready after', () => {

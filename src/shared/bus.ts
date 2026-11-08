@@ -23,10 +23,13 @@ import type {
   TransportPlaybackState,
 } from '@sudobility/music_types';
 
-import type { Unsubscribe } from '../types.js';
+import type {
+  Unsubscribe,
+  PlaybackBus as PlaybackBusContract,
+} from '@sudobility/music_types';
 import { getMusicPositionSource } from '@sudobility/music_types';
 
-export class PlaybackBus {
+export class PlaybackBus implements PlaybackBusContract {
   /*
     No position listener list of its own.
 
