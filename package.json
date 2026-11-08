@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/music_player",
-  "version": "0.1.82",
+  "version": "0.1.83",
   "description": "Playback scheduler for ScoreSmith: transport, the soundfont scheduling engine and plan building, for web and React Native (synths are @sudobility/music_synth, music_synth_rn and music_sample_engine)",
   "author": "Sudobility",
   "license": "BUSL-1.1",

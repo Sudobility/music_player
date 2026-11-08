@@ -15,7 +15,11 @@ import type {
 } from '@sudobility/music_types';
 import { PlaybackBus } from '../shared/bus.js';
 import { readinessOf } from '@sudobility/music_types';
-import type { IMusicPlayer, PlaybackReadiness, Unsubscribe } from '@sudobility/music_types';
+import type {
+  IMusicPlayer,
+  PlaybackReadiness,
+  Unsubscribe,
+} from '@sudobility/music_types';
 
 export class MockMusicPlayer implements IMusicPlayer {
   readonly calls: string[] = [];
