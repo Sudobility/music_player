@@ -22,11 +22,13 @@ backend, and the one package that depends *on* this one).
 ## Commands
 
 - `bun run verify` — format:check + typecheck + lint + test + build (before any push).
-- `bun run test` — vitest. `bun run build` — `tsc -p tsconfig.esm.json`.
+- `bun run test:unit` — vitest (`bun run test:watch` to watch). `bun run build` — `tsc -p tsconfig.esm.json`.
 
 ## Structure
 
-- `src/types.ts` — `IMusicPlayer`, the transport interface.
+- `IMusicPlayer` (the transport interface) lives in **music_types**; `src/singleton.ts`
+  holds the player singleton (`initializeMusicPlayer`/`getMusicPlayer`/`resetMusicPlayer`)
+  and `src/index.ts` is the root export.
 - `src/engine.ts` — the engine contract (`PlaybackEngine`, `PlaybackObserver`,
   `AuditionVoice`). `SoundfontPlaybackEngine` implements it here; so does
   music_sample_engine's engine, which reaches the contract through `/core`.
@@ -34,8 +36,7 @@ backend, and the one package that depends *on* this one).
 - `src/playback/` — the scheduler (`soundfont-engine.ts`: tempo map, lookahead, loop,
   seek, sounding set — consumes a `SynthBackend`) and primitives (`clock.ts`, `governor.ts`).
 - `src/shared/` — `plan.ts`, `render-events.ts`, `render-score.ts` (`renderScoreWith`,
-  export composition), `bus.ts`, `note-queue`, `sounding-set`, `visual-sync`,
-  `pump-window`, `midi`.
+  export composition), `bus.ts`, `note-queue`, `sounding-set`, `visual-sync`, `humanize`.
 - `src/core.ts` — the **platform-free** entry (interface, singleton, engine contract,
   plan builders). `src/react/` — `usePlaybackReadiness` (the only thing needing React).
   `src/mocks/` — `MockMusicPlayer`. `src/test/fake-synth-backend.ts` — the backend double.
