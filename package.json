@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/music_player",
-  "version": "0.1.86",
+  "version": "0.1.87",
   "description": "Playback scheduler for ScoreSmith: transport, the soundfont scheduling engine and plan building, for web and React Native (synths are @sudobility/music_synth, music_synth_rn and music_sample_engine)",
   "author": "Sudobility",
   "license": "BUSL-1.1",
@@ -51,7 +51,7 @@
     "prepublishOnly": "bun run clean && bun run verify"
   },
   "peerDependencies": {
-    "@sudobility/music_types": "^0.13.66",
+    "@sudobility/music_types": "^0.13.67",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@eslint/js": "~10.0.1",
-    "@sudobility/music_types": "^0.13.66",
+    "@sudobility/music_types": "^0.13.67",
     "@testing-library/react": "~16.3.3",
     "@types/node": "~26.6.5",
     "@types/react": "~19.3.0",
