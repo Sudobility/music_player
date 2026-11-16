@@ -41,11 +41,12 @@ describe('package boundaries', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('takes no runtime dependency, and music_types as its only required peer', () => {
+  it('takes no runtime dependency, and music_types and types as its required peers', () => {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
     expect(Object.keys(pkg.dependencies ?? {})).toEqual([]);
     expect(Object.keys(pkg.peerDependencies ?? {}).sort()).toEqual([
       '@sudobility/music_types',
+      '@sudobility/types',
       'react',
     ]);
     // No synth library is a peer any more: the concrete synths moved to their

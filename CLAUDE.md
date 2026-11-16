@@ -48,8 +48,8 @@ backend, and the one package that depends *on* this one).
 ## Package boundaries
 
 `src/contract/no-domain-imports.test.ts` enforces: no music_lib, no music_io, no
-vexflow, no runtime dependency, **music_types the only required peer** (React optional,
-for `./react`). No synth library is a peer. `src/__single-source.test.ts` and
+vexflow, no runtime dependency, **music_types and `@sudobility/types` the required peers**
+(React optional, for `./react`). No synth library is a peer. `src/__single-source.test.ts` and
 `src/__one-declaration.test.ts` enforce single-source constants (names read from
 music_types at runtime; `Unsubscribe` guarded against duplicate copies).
 
